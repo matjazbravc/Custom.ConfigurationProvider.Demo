@@ -1,0 +1,35 @@
+﻿@page
+@model Custom.Configuration.Provider.Demo.Pages.CustomSettings.IndexModel
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h4>Available configurations</h4>
+<hr />
+<p>
+    <a asp-page="Create">Create New</a>
+</p>
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th scope="col">CustomSettingA</th>
+            <th scope="col">CustomSettingB</th>
+            <th scope="col">Default</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var config in Model.AppSettingsCustomEntities)
+        {
+        <tr>
+            <th scope="row">@config.CustomSettingA</th>
+            <td>@config.CustomSettingB</td>
+            <td><input type="checkbox" checked=@config.Default disabled></td>
+            <td>
+                <a class="btn btn-info" asp-page="./Index" asp-route-id="@config.Id">Default</a>
+                <a class="btn btn-primary" asp-page="./Edit" asp-route-id="@config.Id">Edit</a>
+                <a class="btn btn-danger" asp-page="./Delete" asp-route-id="@config.Id">Delete</a>
+            </td>
+        </tr>
+        }
+    </tbody>
+</table>

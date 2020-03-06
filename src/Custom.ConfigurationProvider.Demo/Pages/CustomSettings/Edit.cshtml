@@ -1,0 +1,37 @@
+﻿@page
+@model Custom.Configuration.Provider.Demo.Pages.CustomSettings.EditModel
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h4>Edit configuration</h4>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label>CustomSettingA</label>
+                <input asp-for="AppSettingsCustom.CustomSettingA" class="form-control" />
+                <span asp-validation-for="AppSettingsCustom.CustomSettingA" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label>CustomSettingB</label>
+                <input asp-for="AppSettingsCustom.CustomSettingB" class="form-control" />
+                <span asp-validation-for="AppSettingsCustom.CustomSettingB" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <div class="custom-control custom-checkbox">
+                    <input asp-for="AppSettingsCustom.Default" class="custom-control-input" id="chkBoxDefault" />
+                    <label class="custom-control-label" for="chkBoxDefault">@Html.DisplayNameFor(model => model.AppSettingsCustom.Default)</label>
+                </div>
+            </div>
+            <input type="hidden" asp-for="AppSettingsCustom.Id" />
+            <hr />
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" /> |
+                <a asp-page="./Index">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>

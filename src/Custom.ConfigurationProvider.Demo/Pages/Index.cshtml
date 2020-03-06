@@ -1,0 +1,53 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-6">Custom ConfigurationProvider Demo</h1>
+    <p>Learn about <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/?view=aspnetcore-3.1">Configuration in ASP.NET Core</a>.</p>
+</div>
+
+<div class="modal-body row">
+    <div class="col-md-12">
+        <div class="card box-shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="my-0 font-weight-normal">AppSettingsCustom - Configurable settings from Database</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-sm table-striped w-auto">
+                    <tbody>
+                        <tr>
+                            <td>CustomSettingA</td>
+                            <td>@Model.AppSettingsCustom.CustomSettingA</td>
+                        </tr>
+                        <tr>
+                            <td>CustomSettingB</td>
+                            <td>@Model.AppSettingsCustom.CustomSettingB</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card box-shadow" style="margin-top:10px">
+            <div class="card-header bg-success text-white">
+                <h5 class="my-0 font-weight-normal">AppSettings - Static settings from appsettings.json</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-fit table-sm table-striped w-auto">
+                    <tbody>
+                        <tr>
+                            <td>SettingA</td>
+                            <td>@Model.AppSettings.SettingA</td>
+                        </tr>
+                        <tr>
+                            <td>SettingB</td>
+                            <td>@Model.AppSettings.SettingB</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
