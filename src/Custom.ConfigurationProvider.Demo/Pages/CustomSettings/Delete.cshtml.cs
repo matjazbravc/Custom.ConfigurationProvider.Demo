@@ -39,8 +39,8 @@ namespace Custom.Configuration.Provider.Demo.Pages.CustomSettings
             {
                 return NotFound();
             }
-
             await _appSettingsCustomRepository.DeleteAsync(AppSettingsCustom);
+            await _appSettingsCustomRepository.SetDefaultAsync().ConfigureAwait(false);
             return RedirectToPage("./Index");
         }
     }

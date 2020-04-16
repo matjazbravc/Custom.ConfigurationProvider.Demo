@@ -40,14 +40,14 @@ namespace Custom.Configuration.Provider.Demo.Pages.CustomSettings
             {
                 return Page();
             }
-
             try
             {
                 await _appSettingsCustomRepository.UpdateAsync(AppSettingsCustom);
+                await _appSettingsCustomRepository.SetDefaultAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!AppSettingsCustomExists(AppSettingsCustom.Id))
+                if (!await AppSettingsCustomExistsAsync(AppSettingsCustom.Id))
                 {
                     return NotFound();
                 }
@@ -59,9 +59,9 @@ namespace Custom.Configuration.Provider.Demo.Pages.CustomSettings
             return RedirectToPage("./Index");
         }
 
-        private bool AppSettingsCustomExists(int id)
+        private async Task<bool> AppSettingsCustomExistsAsync(int id)
         {
-            var product = _appSettingsCustomRepository.GetByIdAsync(id);
+            var product = await _appSettingsCustomRepository.GetByIdAsync(id).ConfigureAwait(false);
             return product != null;
         }
     }

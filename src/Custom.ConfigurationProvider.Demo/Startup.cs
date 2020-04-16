@@ -35,8 +35,8 @@ namespace Custom.Configuration.Provider.Demo
             services.AppSettingsConfiguration(Configuration);
 
             var sqlServerOptions = Configuration.GetSection(nameof(SqlServerOptions));
-            services.AddDbContext<DatabaseContext>(options => options.UseSqlite(sqlServerOptions[nameof(SqlServerOptions.SqlServerConnection)]));
-            //services.AddDbContext<DatabaseContext>(options => options.UseInMemoryDatabase("db", new InMemoryDatabaseRoot()));
+            services.AddDbContext<DatabaseContext>(options => options
+                .UseSqlite(sqlServerOptions[nameof(SqlServerOptions.SqlServerConnection)]));
 
             // Add services
             services.AddScoped<IAppSettingsCustomRepository, AppSettingsCustomRepository>();

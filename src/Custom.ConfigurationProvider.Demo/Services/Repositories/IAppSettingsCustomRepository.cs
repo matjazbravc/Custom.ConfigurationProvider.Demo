@@ -8,6 +8,8 @@ namespace Custom.Configuration.Provider.Demo.Services.Repositories
     {
         Task<AppSettingsCustomEntity> AddAsync(AppSettingsCustomEntity entity);
 
+        Task ClearDefaultAsync(int excludeId);
+
         Task DeleteAsync(AppSettingsCustomEntity entity);
 
         Task<IEnumerable<AppSettingsCustomEntity>> GetAsync();
@@ -15,6 +17,8 @@ namespace Custom.Configuration.Provider.Demo.Services.Repositories
         Task<AppSettingsCustomEntity> GetByIdAsync(int id);
 
         Task SetDefaultAsync(int id);
+
+        Task SetDefaultAsync();
 
         Task UpdateAsync(AppSettingsCustomEntity entity);
     }
