@@ -6,28 +6,27 @@ using Custom.Configuration.Provider.Demo.Services.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace Custom.Configuration.Provider.Demo.Pages.CustomSettings
-{
-    public class IndexModel : PageModel
-    {
+namespace Custom.Configuration.Provider.Demo.Pages.CustomSettings;
 
-        private readonly IAppSettingsCustomRepository _appSettingsCustomRepository;
+  public class IndexModel : PageModel
+  {
 
-        public IndexModel(IAppSettingsCustomRepository appSettingsCustomRepository)
-        {
-            _appSettingsCustomRepository = appSettingsCustomRepository ?? throw new ArgumentNullException(nameof(AppSettingsCustomRepository));
-        }
+      private readonly IAppSettingsCustomRepository _appSettingsCustomRepository;
 
-        public IEnumerable<AppSettingsCustomEntity> AppSettingsCustomEntities { get; set; } = new List<AppSettingsCustomEntity>();
+      public IndexModel(IAppSettingsCustomRepository appSettingsCustomRepository)
+      {
+          _appSettingsCustomRepository = appSettingsCustomRepository ?? throw new ArgumentNullException(nameof(AppSettingsCustomRepository));
+      }
 
-        public async Task<IActionResult> OnGetAsync(int? id)
-        {
-            if (id != null)
-            {
-                await _appSettingsCustomRepository.SetDefaultAsync(id.Value).ConfigureAwait(false);
-            }
-            AppSettingsCustomEntities = await _appSettingsCustomRepository.GetAsync().ConfigureAwait(false);
-            return Page();
-        }
-    }
-}
+      public IEnumerable<AppSettingsCustomEntity> AppSettingsCustomEntities { get; set; } = new List<AppSettingsCustomEntity>();
+
+      public async Task<IActionResult> OnGetAsync(int? id)
+      {
+          if (id != null)
+          {
+              await _appSettingsCustomRepository.SetDefaultAsync(id.Value).ConfigureAwait(false);
+          }
+          AppSettingsCustomEntities = await _appSettingsCustomRepository.GetAsync().ConfigureAwait(false);
+          return Page();
+      }
+  }

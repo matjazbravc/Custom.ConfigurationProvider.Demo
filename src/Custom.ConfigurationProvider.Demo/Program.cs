@@ -1,50 +1,43 @@
 using Custom.Configuration.Provider.Demo.Configuration.Sources;
 using Custom.Configuration.Provider.Demo.Configuration;
+using Custom.Configuration.Provider.Demo;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
-using System.IO;
 
-namespace Custom.Configuration.Provider.Demo
-{
-    public class Program
-    {
-        public static void Main(string[] args)
+// Initial logging
+Log.Logger = new LoggerConfiguration()
+  .WriteTo.Console()
+  .CreateBootstrapLogger();
+
+IHost app = Host
+  .CreateDefaultBuilder(args)
+    .ConfigureWebHostDefaults(webHostBuilder => webHostBuilder
+      .ConfigureAppConfiguration((hostingContext, config) =>
+      {
+        config.SetBasePath(hostingContext.HostingEnvironment.ContentRootPath);
+        config.AddJsonFile("appsettings.json", false, true);
+        config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+        config.AddJsonFile($"appsettings.{hostingContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+        config.AddEnvironmentVariables();
+
+        // Rebuild configuration
+        IConfigurationRoot configuration = config.Build();
+        IConfigurationSection sqlServerOptions = configuration.GetSection(nameof(SqlServerOptions));
+
+        config.Add(new AppSettingsCustomEntityConfigurationSource(configuration)
         {
-            var host = CreateWebHostBuilder(args).Build();
-            host.Run();
-        }
+          OptionsAction = options => options.UseSqlite(sqlServerOptions[nameof(SqlServerOptions.SqlServerConnection)]),
+          //OptionsAction = options => options.UseInMemoryDatabase("db", new InMemoryDatabaseRoot())),
+          ReloadOnChange = true
+        });
+      })
+      .UseStartup<Startup>())
+        .UseSerilog((hostingContext, loggerConfig) => loggerConfig
+          .ReadFrom.Configuration(hostingContext.Configuration)
+          .Enrich.FromLogContext(), writeToProviders: true)
+  .Build();
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .ConfigureAppConfiguration((hostingContext, config) =>
-                {
-                    var env = hostingContext.HostingEnvironment;
-                    config.Sources.Clear();
-                    config.SetBasePath(env.ContentRootPath);
-                    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                    config.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
-                    config.AddEnvironmentVariables();
-                    // Rebuild configuration
-                    var configuration = config.Build();
-                    var sqlServerOptions = configuration.GetSection(nameof(SqlServerOptions));
-                    config.Add(new AppSettingsCustomEntityConfigurationSource(configuration)
-                    {
-                        OptionsAction = options => options.UseSqlite(sqlServerOptions[nameof(SqlServerOptions.SqlServerConnection)]),
-                        //OptionsAction = options => options.UseInMemoryDatabase("db", new InMemoryDatabaseRoot())),
-                        ReloadOnChange = true
-                    });
-                })
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                // Because we are accessing a Scoped service via the IOptionsSnapshot provider,
-                // we must disable the dependency injection scope validation feature:
-                .UseDefaultServiceProvider(options => options.ValidateScopes = false)
-                .UseStartup<Startup>()
-                .UseSerilog((hostingContext, loggerConfiguration) => loggerConfiguration
-                    .ReadFrom.Configuration(hostingContext.Configuration)
-                    .Enrich.FromLogContext());
-    }
-}
+await app.RunAsync();

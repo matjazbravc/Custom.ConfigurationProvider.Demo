@@ -1,7 +1,6 @@
 ﻿@page
 @model Custom.Configuration.Provider.Demo.Pages.CustomSettings.IndexModel
-@{
-    ViewData["Title"] = "Index";
+@{ViewData["Title"] = "Index";
 }
 
 <h4>Available configurations</h4>
@@ -19,8 +18,8 @@
     </thead>
     <tbody>
         @foreach (var config in Model.AppSettingsCustomEntities)
-        {
-        <tr>
+      {
+      <tr>
             <th scope="row">@config.CustomSettingA</th>
             <td>@config.CustomSettingB</td>
             <td><input type="checkbox" checked=@config.Default disabled></td>
@@ -30,6 +29,6 @@
                 <a class="btn btn-danger" asp-page="./Delete" asp-route-id="@config.Id">Delete</a>
             </td>
         </tr>
-        }
+      }
     </tbody>
 </table>

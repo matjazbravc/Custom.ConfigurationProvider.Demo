@@ -9,34 +9,33 @@ I want to use configuration section from the **appsettings.json** which can be s
 ASP.NET Core templates call CreateDefaultBuilder when building a **WebHost**. This provides default configuration for the application, for instance the **appsettings.json** using the File Configuration Provider:
 
 ```csharp
-public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-    WebHost.CreateDefaultBuilder(args)
-        .ConfigureAppConfiguration((hostingContext, config) =>
+using IHost app = Host
+  .CreateDefaultBuilder(args)
+    .ConfigureWebHostDefaults(webHostBuilder => webHostBuilder
+      .ConfigureAppConfiguration((hostingContext, config) =>
+      {
+        config.SetBasePath(hostingContext.HostingEnvironment.ContentRootPath);
+        config.AddJsonFile("appsettings.json", false, true);
+        config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+        config.AddJsonFile($"appsettings.{hostingContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+        config.AddEnvironmentVariables();
+        // Rebuild configuration
+        IConfigurationRoot configuration = config.Build();
+        IConfigurationSection sqlServerOptions = configuration.GetSection(nameof(SqlServerOptions));
+        config.Add(new AppSettingsCustomEntityConfigurationSource(configuration)
         {
-            var env = hostingContext.HostingEnvironment;
-            config.Sources.Clear();
-            config.SetBasePath(env.ContentRootPath);
-            config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-            config.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
-            config.AddEnvironmentVariables();
-            // Rebuild configuration
-            var configuration = config.Build();
-            var sqlServerOptions = configuration.GetSection(nameof(SqlServerOptions));
-            config.Add(new AppSettingsCustomEntityConfigurationSource(configuration)
-            {
-                OptionsAction = options => options.UseSqlite(sqlServerOptions[nameof(SqlServerOptions.SqlServerConnection)]),
-                //OptionsAction = options => options.UseInMemoryDatabase("db", new InMemoryDatabaseRoot())),
-                ReloadOnChange = true
-            });
-        })
-        .UseContentRoot(Directory.GetCurrentDirectory())
-        // Because we are accessing a Scoped service via the IOptionsSnapshot provider,
-        // we must disable the dependency injection scope validation feature:
-        .UseDefaultServiceProvider(options => options.ValidateScopes = false)
-        .UseStartup<Startup>()
-        .UseSerilog((hostingContext, loggerConfiguration) => loggerConfiguration
-            .ReadFrom.Configuration(hostingContext.Configuration)
-            .Enrich.FromLogContext());
+          OptionsAction = options => options.UseSqlite(sqlServerOptions[nameof(SqlServerOptions.SqlServerConnection)]),
+          //OptionsAction = options => options.UseInMemoryDatabase("db", new InMemoryDatabaseRoot())),
+          ReloadOnChange = true
+        });
+      })
+      .UseStartup<Startup>())
+      .UseSerilog((hostingContext, loggerConfig) => loggerConfig
+        .ReadFrom.Configuration(hostingContext.Configuration)
+        .Enrich.FromLogContext(), writeToProviders: true)
+  .Build();
+
+await app.RunAsync();
 ```
 We will use two configuration classes: **AppSettings** and **AppSettingsCustom**.
 Both maps to the configuration section in **appsettings.json**. But only **AppSettingsCustom** class overrides of those configuration values from the database (**AppSettingsCustomEntity**).
@@ -44,9 +43,9 @@ Both maps to the configuration section in **appsettings.json**. But only **AppSe
 ```csharp
 public class AppSettingsCustom : IAppSettingsCustom
 {
-    public string CustomSettingA { get; set; }
+  public string CustomSettingA { get; set; }
 
-    public string CustomSettingB { get; set; }
+  public string CustomSettingB { get; set; }
 }
 ```
 
@@ -54,20 +53,20 @@ public class AppSettingsCustom : IAppSettingsCustom
 [Table("AppCustomSettings")]
 public class AppSettingsCustomEntity
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+  [Key]
+  [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+  public int Id { get; set; }
 
-    [Description("CustomSetting A")]
-    [Column("CustomSettingA", TypeName = "nvarchar(512)")]
-    public string CustomSettingA { get; set; }
+  [Description("CustomSetting A")]
+  [Column("CustomSettingA", TypeName = "nvarchar(512)")]
+  public string CustomSettingA { get; set; }
 
-    [Description("CustomSetting B")]
-    [Column("CustomSettingB", TypeName = "nvarchar(512)")]
-    public string CustomSettingB { get; set; }
+  [Description("CustomSetting B")]
+  [Column("CustomSettingB", TypeName = "nvarchar(512)")]
+  public string CustomSettingB { get; set; }
 
-    [Column("Default", TypeName = "bit")]
-    public bool Default { get; set; } = true;
+  [Column("Default", TypeName = "bit")]
+  public bool Default { get; set; } = true;
 }    
 ```
 
@@ -96,69 +95,68 @@ And by using the same keys for the configuration values as we used in the **apps
 ```csharp
 public class AppSettingsCustomEntityConfigurationProvider : ConfigurationProvider
 {
-    private readonly AppSettingsCustomEntityConfigurationSource _source;
+  private readonly AppSettingsCustomEntityConfigurationSource _source;
 
-    public AppSettingsCustomEntityConfigurationProvider(AppSettingsCustomEntityConfigurationSource source)
+  public AppSettingsCustomEntityConfigurationProvider(AppSettingsCustomEntityConfigurationSource source)
+  {
+    _source = source;
+    if (_source.ReloadOnChange)
     {
-        _source = source;
-        if (_source.ReloadOnChange)
-        {
-            EntityChangeObserver.Instance.Changed += EntityChangeObserverChanged;
-        }
+      EntityChangeObserver.Instance.Changed += EntityChangeObserverChanged;
     }
+  }
 
-    public override void Load()
+  public override void Load()
+  {
+    var builder = new DbContextOptionsBuilder<DatabaseContext>();
+    _source.OptionsAction(builder);
+    var context = new DatabaseContext(builder.Options);
+    try
     {
-        var builder = new DbContextOptionsBuilder<DatabaseContext>();
-        _source.OptionsAction(builder);
-        var context = new DatabaseContext(builder.Options);
-        try
-        {
-            // Update AppSettingsCustom Data 
-            // Configuration consists of a hierarchical list of name-value pairs in which the nodes are separated by a colon (:)
-            // Read more: https://www.paraesthesia.com/archive/2018/06/20/microsoft-extensions-configuration-deep-dive/
-            Data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+      // Update AppSettingsCustom Data 
+      // Configuration consists of a hierarchical list of name-value pairs in which the nodes are separated by a colon (:)
+      // Read more: https://www.paraesthesia.com/archive/2018/06/20/microsoft-extensions-configuration-deep-dive/
+      Data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            // Ensure database is created
-            context.Database.EnsureCreated();
+      // Ensure database is created
+      context.Database.EnsureCreated();
 
-            // Read default configuration from Data table
-            var config = context.AppSettingsCustomItems.FirstOrDefault(cfg => cfg.Default == true);
-            if (config == null)
-            {
-                // Note: if there is no available configuration in the database then we read values from appsettings.json file
-                Data.Add($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingA)}", _source.Configuration.GetValue<string>($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingA)}"));
-                Data.Add($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingB)}", _source.Configuration.GetValue<string>($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingB)}"));
-            }
-            else
-            {
-                if (config.CustomSettingA != null)
-                {
-                    Data.Add($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingA)}", config.CustomSettingA);
-                }
-                if (config.CustomSettingB != null)
-                {
-                    Data.Add($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingB)}", config.CustomSettingB);
-                }
-            }
-        }
-        catch (Exception ex)
+      // Read default configuration from Data table
+      var config = context.AppSettingsCustomItems.FirstOrDefault(cfg => cfg.Default);
+      if (config == null)
+      {
+        // Note: if there is no available configuration in the database then we read values from appsettings.json file
+        Data.Add($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingA)}", _source.Configuration.GetValue<string>($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingA)}"));
+        Data.Add($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingB)}", _source.Configuration.GetValue<string>($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingB)}"));
+      }
+      else
+      {
+        if (config.CustomSettingA != null)
         {
-            Log.Error(ex, "Exception occured");
-            return;
+          Data.Add($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingA)}", config.CustomSettingA);
         }
+        if (config.CustomSettingB != null)
+        {
+          Data.Add($"{nameof(AppSettingsCustom)}:{nameof(AppSettingsCustom.CustomSettingB)}", config.CustomSettingB);
+        }
+      }
     }
-
-    private void EntityChangeObserverChanged(object sender, EntityChangeEventArgs e)
+    catch (Exception ex)
     {
-        if (e.Entry.Entity.GetType() != typeof(AppSettingsCustomEntity))
-        {
-            return;
-        }
-        // Make a small delay to avoid triggering a reload before a change is completely saved to the underlaying database
-        Thread.Sleep(_source.ReloadDelay);
-        Load();
+      Log.Error(ex, "Unexpected exception occured");
     }
+  }
+
+  private void EntityChangeObserverChanged(object sender, EntityChangeEventArgs e)
+  {
+    if (e.Entry.Entity.GetType() != typeof(AppSettingsCustomEntity))
+    {
+      return;
+    }
+    // Make a small delay to avoid triggering a reload before a change is saved to the underlaying database
+    Thread.Sleep(_source.ReloadDelay);
+    Load();
+  }
 }
 ```
 We now have a configuration provider that loads its values from the database. But it will only do this once, when the application is started, and we want it to reload as well when the user updates the **AppSettingsCustomEntity** in the database.
@@ -167,29 +165,24 @@ We now have a configuration provider that loads its values from the database. Bu
 Because we are using Entity Framework Core as a configuration source we need a DbContextOptionsBuilder action to use the DbContext from the configuration provider. We also have a Configuration which we will use in ConfigurationProvider and ReloadDelay to avoid triggering a reload before a change is saved.
 
 ```csharp
-public class AppSettingsCustomEntityConfigurationSource : IConfigurationSource
+public class AppSettingsCustomEntityConfigurationSource(IConfiguration configuration) : IConfigurationSource
 {
-    public AppSettingsCustomEntityConfigurationSource(IConfiguration configuration)
-    {
-        Configuration = configuration;
-    }
+  public IConfiguration Configuration { get; private set; } = configuration;
 
-    public IConfiguration Configuration { get; private set; }
+  public Action<DbContextOptionsBuilder> OptionsAction { get; set; }
 
-    public Action<DbContextOptionsBuilder> OptionsAction { get; set; }
+  /// <summary>
+  ///     Number of milliseconds that ConfigurationProvider will wait before calling Load method.
+  ///     This helps avoid triggering a reload before a change is saved.
+  /// </summary>
+  public int ReloadDelay { get; set; } = 500;
 
-    /// <summary>
-    ///     Number of milliseconds that ConfigurationProvider will wait before calling Load method.
-    ///     This helps avoid triggering a reload before a change is saved.
-    /// </summary>
-    public int ReloadDelay { get; set; } = 500;
+  public bool ReloadOnChange { get; set; }
 
-    public bool ReloadOnChange { get; set; }
-
-    public IConfigurationProvider Build(IConfigurationBuilder builder)
-    {
-        return new AppSettingsCustomEntityConfigurationProvider(this);
-    }
+  public IConfigurationProvider Build(IConfigurationBuilder builder)
+  {
+    return new AppSettingsCustomEntityConfigurationProvider(this);
+  }
 }
 ```
 ## Reloading configuration on Entity changes
@@ -200,18 +193,18 @@ This can we do by triggering an event on a entity change observer class and list
 ```csharp
 public class EntityChangeObserver
 {
-    public event EventHandler<EntityChangeEventArgs> Changed;
+  public event EventHandler<EntityChangeEventArgs> Changed;
 
-    public void OnChanged(EntityChangeEventArgs e)
-    {
-        ThreadPool.QueueUserWorkItem((_) => Changed?.Invoke(this, e));
-    }
+  public void OnChanged(EntityChangeEventArgs e)
+  {
+    ThreadPool.QueueUserWorkItem((_) => Changed?.Invoke(this, e));
+  }
 
-    private static readonly Lazy<EntityChangeObserver> lazy = new Lazy<EntityChangeObserver>(() => new EntityChangeObserver());
+  private static readonly Lazy<EntityChangeObserver> lazy = new Lazy<EntityChangeObserver>(() => new EntityChangeObserver());
 
-    private EntityChangeObserver() { }
+  private EntityChangeObserver() { }
 
-    public static EntityChangeObserver Instance => lazy.Value;
+  public static EntityChangeObserver Instance => lazy.Value;
 }
 ```
 ## Notify the EntityChangeObserver
@@ -221,49 +214,44 @@ Now we have to create a custom base class that extends **DbContext** and overrid
 ```csharp
 public class DatabaseContext : DbContext
 {
-    // Don't remove any of constructors!
-    public DatabaseContext()
-    {
-    }
+  // Don't remove any of constructors!
+  public DatabaseContext()
+  {
+  }
 
-    public DatabaseContext(DbContextOptions<DatabaseContext> options)
-        : base(options)
-    {
-    }
+  public DatabaseContext(DbContextOptions<DatabaseContext> options)
+      : base(options)
+  {
+  }
 
-    public DbSet<AppSettingsCustomEntity> AppSettingsCustomItems{ get; set; }
+  public DbSet<AppSettingsCustomEntity> AppSettingsCustomItems { get; set; }
 
-    public override int SaveChanges()
-    {
-        TrackEntityChanges();
-        return base.SaveChanges();
-    }
+  public override int SaveChanges()
+  {
+    TrackEntityChanges();
+    return base.SaveChanges();
+  }
 
-    public async Task<int> SaveChangesAsync()
-    {
-        TrackEntityChanges();
-        return await base.SaveChangesAsync();
-    }
+  public async Task<int> SaveChangesAsync()
+  {
+    TrackEntityChanges();
+    return await base.SaveChangesAsync();
+  }
 
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
-    {
-        TrackEntityChanges();
-        return await base.SaveChangesAsync(cancellationToken);
-    }
+  public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+  {
+    TrackEntityChanges();
+    return await base.SaveChangesAsync(cancellationToken);
+  }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+  private void TrackEntityChanges()
+  {
+    foreach (var entry in ChangeTracker.Entries().Where(e =>
+        e.State == EntityState.Modified || e.State == EntityState.Added || e.State == EntityState.Deleted))
     {
-        base.OnModelCreating(modelBuilder);
+      EntityChangeObserver.Instance.OnChanged(new EntityChangeEventArgs(entry));
     }
-
-    private void TrackEntityChanges()
-    {
-        foreach (var entry in ChangeTracker.Entries().Where(e =>
-            e.State == EntityState.Modified || e.State == EntityState.Added || e.State == EntityState.Deleted))
-        {
-            EntityChangeObserver.Instance.OnChanged(new EntityChangeEventArgs(entry));
-        }
-    }
+  }
 }
 ```
 
@@ -274,22 +262,23 @@ To let the configuration provider know the entity has changed and to trigger a r
 ```csharp
 public AppSettingsCustomEntityConfigurationProvider(AppSettingsCustomEntityConfigurationSource source)
 {
-    _source = source;
-    if (_source.ReloadOnChange)
-    {
-        EntityChangeObserver.Instance.Changed += EntityChangeObserverChanged;
-    }
+  _source = source;
+  if (_source.ReloadOnChange)
+  {
+    EntityChangeObserver.Instance.Changed += EntityChangeObserverChanged;
+  }
 }
+
 
 private void EntityChangeObserverChanged(object sender, EntityChangeEventArgs e)
 {
-    if (e.Entry.Entity.GetType() != typeof(AppSettingsCustomEntity))
-    {
-        return;
-    }
-    // Make a small delay to avoid triggering a reload before a change is saved to the underlaying database
-    Thread.Sleep(_source.ReloadDelay);
-    Load();
+  if (e.Entry.Entity.GetType() != typeof(AppSettingsCustomEntity))
+  {
+    return;
+  }
+  // Make a small delay to avoid triggering a reload before a change is saved to the underlaying database
+  Thread.Sleep(_source.ReloadDelay);
+  Load();
 }
 ```
 
@@ -298,25 +287,31 @@ private void EntityChangeObserverChanged(object sender, EntityChangeEventArgs e)
 As a final step we have to add **AppSettingsCustomEntityConfigurationSource** in the **Program.cs**:
 
 ```csharp
- WebHost.CreateDefaultBuilder(args)
-    .ConfigureAppConfiguration((hostingContext, config) =>
-    {
-        var env = hostingContext.HostingEnvironment;
-        config.Sources.Clear();
-        config.SetBasePath(env.ContentRootPath);
+using IHost app = Host
+  .CreateDefaultBuilder(args)
+    .ConfigureWebHostDefaults(webHostBuilder => webHostBuilder
+      .ConfigureAppConfiguration((hostingContext, config) =>
+      {
+        config.SetBasePath(hostingContext.HostingEnvironment.ContentRootPath);
+        config.AddJsonFile("appsettings.json", false, true);
         config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-        config.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
+        config.AddJsonFile($"appsettings.{hostingContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
         config.AddEnvironmentVariables();
         // Rebuild configuration
-        var configuration = config.Build();
-        var sqlServerOptions = configuration.GetSection(nameof(SqlServerOptions));
+        IConfigurationRoot configuration = config.Build();
+        IConfigurationSection sqlServerOptions = configuration.GetSection(nameof(SqlServerOptions));
         config.Add(new AppSettingsCustomEntityConfigurationSource(configuration)
         {
-            OptionsAction = options => options.UseSqlite(sqlServerOptions[nameof(SqlServerOptions.SqlServerConnection)]),
-            //OptionsAction = options => options.UseInMemoryDatabase("db", new InMemoryDatabaseRoot())),
-            ReloadOnChange = true
+          OptionsAction = options => options.UseSqlite(sqlServerOptions[nameof(SqlServerOptions.SqlServerConnection)]),
+          //OptionsAction = options => options.UseInMemoryDatabase("db", new InMemoryDatabaseRoot())),
+          ReloadOnChange = true
         });
-    })
+      })
+      .UseStartup<Startup>())
+      .UseSerilog((hostingContext, loggerConfig) => loggerConfig
+        .ReadFrom.Configuration(hostingContext.Configuration)
+        .Enrich.FromLogContext(), writeToProviders: true)
+  .Build();
 ```
 ## How it works?
 
@@ -328,20 +323,19 @@ Whenever do this, the **AppSettingsCustomEntity** changes and the values will be
 [Read More](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-3.0#reload-configuration-data-with-ioptionssnapshot)
 
 This example demonstrate also the following functionalities:
-- [ASP.NET Core 3.1 Razor Pages](https://docs.microsoft.com/en-us/aspnet/core/razor-pages/?view=aspnetcore-3.1&tabs=visual-studio)
+- [Get started with Razor Pages in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/tutorials/razor-pages/razor-pages-start?view=aspnetcore-8.0&tabs=visual-studio)
 - Global Error Handling
 - Logging with [Serilog](https://serilog.net/) sink to file
 - Asynchronous repository Pattern for Entity types
 - [SQLite EF Core Database Provider](https://docs.microsoft.com/en-us/ef/core/providers/sqlite/?tabs=dotnet-core-cli)
 
 ## Prerequisites
-- [Visual Studio](https://www.visualstudio.com/vs/community) 2019 16.4.5 or greater
-- [.NET Core SDK 3.1](https://dotnet.microsoft.com/download/dotnet-core/3.1)
+- [Visual Studio](https://www.visualstudio.com/vs/community) 2022 17.2.6 or higher
+- [.NET SDK 8.0](https://dotnet.microsoft.com/download/dotnet/8.0)
 
 ## Tags & Technologies
-- [ASP.NET Core 3.1](https://docs.microsoft.com/en-us/aspnet/?view=aspnetcore-3.1#pivot=core)
-- [ASP.NET Core 3.1 Razor Pages](https://docs.microsoft.com/en-us/aspnet/core/razor-pages/?view=aspnetcore-3.1&tabs=visual-studio)
-- [Entity Framework Core 3.1](https://docs.microsoft.com/en-us/ef/core/)
+- [ASP.NET Core Razor Pages](https://learn.microsoft.com/en-us/aspnet/core/razor-pages/?view=aspnetcore-8.0&preserve-view=true&tabs=visual-studio)
+- [Entity Framework Core 8.0](https://learn.microsoft.com/sl-si/ef/core/)
 
 ## Web User interface
 

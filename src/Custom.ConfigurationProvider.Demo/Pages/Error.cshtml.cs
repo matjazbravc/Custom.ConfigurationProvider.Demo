@@ -3,25 +3,24 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 
-namespace Custom.Configuration.Provider.Demo.Pages
-{
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public class ErrorModel : PageModel
-    {
-        public string RequestId { get; set; }
+namespace Custom.Configuration.Provider.Demo.Pages;
 
-        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+  [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+  public class ErrorModel : PageModel
+  {
+      public string RequestId { get; set; }
 
-        private readonly ILogger<ErrorModel> _logger;
+      public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
-        public ErrorModel(ILogger<ErrorModel> logger)
-        {
-            _logger = logger;
-        }
+      private readonly ILogger<ErrorModel> _logger;
 
-        public void OnGet()
-        {
-            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
-        }
-    }
-}
+      public ErrorModel(ILogger<ErrorModel> logger)
+      {
+          _logger = logger;
+      }
+
+      public void OnGet()
+      {
+          RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+      }
+  }

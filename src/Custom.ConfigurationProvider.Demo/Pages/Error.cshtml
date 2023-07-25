@@ -1,7 +1,6 @@
 ﻿@page
 @model ErrorModel
-@{
-    ViewData["Title"] = "Error";
+@{ViewData["Title"] = "Error";
 }
 
 <h1 class="text-danger">Error.</h1>
@@ -9,7 +8,7 @@
 
 @if (Model.ShowRequestId)
 {
-    <p>
+  <p>
         <strong>Request ID:</strong> <code>@Model.RequestId</code>
     </p>
 }

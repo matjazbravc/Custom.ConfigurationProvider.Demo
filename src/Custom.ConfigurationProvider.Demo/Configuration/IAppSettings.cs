@@ -1,9 +1,8 @@
-﻿namespace Custom.Configuration.Provider.Demo.Configuration
-{
-    public interface IAppSettings
-    {
-        string SettingA { get; set; }
+﻿namespace Custom.Configuration.Provider.Demo.Configuration;
 
-        string SettingB { get; set; }
-    }
+public interface IAppSettings
+{
+  string SettingA { get; set; }
+
+  string SettingB { get; set; }
 }
