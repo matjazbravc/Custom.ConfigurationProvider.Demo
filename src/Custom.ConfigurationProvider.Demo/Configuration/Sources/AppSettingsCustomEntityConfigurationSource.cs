@@ -5,14 +5,9 @@ using System;
 
 namespace Custom.Configuration.Provider.Demo.Configuration.Sources;
 
-public class AppSettingsCustomEntityConfigurationSource : IConfigurationSource
+public class AppSettingsCustomEntityConfigurationSource(IConfiguration configuration) : IConfigurationSource
 {
-  public AppSettingsCustomEntityConfigurationSource(IConfiguration configuration)
-  {
-    Configuration = configuration;
-  }
-
-  public IConfiguration Configuration { get; private set; }
+  public IConfiguration Configuration { get; private set; } = configuration;
 
   public Action<DbContextOptionsBuilder> OptionsAction { get; set; }
 
