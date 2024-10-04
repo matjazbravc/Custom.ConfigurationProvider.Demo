@@ -1,27 +1,26 @@
 ﻿using Newtonsoft.Json;
 using System;
 
-namespace Custom.Configuration.Provider.Demo.Errors
+namespace Custom.Configuration.Provider.Demo.Errors;
+
+[Serializable]
+[JsonObject(IsReference = false)]
+public class ApiError
 {
-    [Serializable]
-    [JsonObject(IsReference = false)]
-    public class ApiError
-    {
-        public ApiError(int statusCode, string message)
-        {
-            StatusCode = statusCode;
-            Message = message;
-        }
+  public ApiError(int statusCode, string message)
+  {
+    StatusCode = statusCode;
+    Message = message;
+  }
 
-        [JsonProperty("statusCode")]
-        public int StatusCode { get; set; }
+  [JsonProperty("statusCode")]
+  public int StatusCode { get; set; }
 
-        [JsonProperty("error")]
-        public string Message { get; set; }
+  [JsonProperty("error")]
+  public string Message { get; set; }
 
-        public override string ToString()
-        {
-            return JsonConvert.SerializeObject(this);
-        }
-    }
+  public override string ToString()
+  {
+    return JsonConvert.SerializeObject(this);
+  }
 }

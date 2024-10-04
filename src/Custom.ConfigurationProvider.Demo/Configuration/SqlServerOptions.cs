@@ -1,7 +1,6 @@
-﻿namespace Custom.Configuration.Provider.Demo.Configuration
+﻿namespace Custom.Configuration.Provider.Demo.Configuration;
+
+public class SqlServerOptions : ISqlServerOptions
 {
-    public class SqlServerOptions : ISqlServerOptions
-    {
-        public string SqlServerConnection { get; set; }
-    }
+  public string SqlServerConnection { get; set; }
 }

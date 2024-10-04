@@ -2,24 +2,23 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Custom.Configuration.Provider.Demo.Services.Repositories
+namespace Custom.Configuration.Provider.Demo.Services.Repositories;
+
+public interface IAppSettingsCustomRepository
 {
-    public interface IAppSettingsCustomRepository
-    {
-        Task<AppSettingsCustomEntity> AddAsync(AppSettingsCustomEntity entity);
+  Task<AppSettingsCustomEntity> AddAsync(AppSettingsCustomEntity entity);
 
-        Task ClearDefaultAsync(int excludeId);
+  Task ClearDefaultAsync(int excludeId);
 
-        Task DeleteAsync(AppSettingsCustomEntity entity);
+  Task DeleteAsync(AppSettingsCustomEntity entity);
 
-        Task<IEnumerable<AppSettingsCustomEntity>> GetAsync();
+  Task<IEnumerable<AppSettingsCustomEntity>> GetAsync();
 
-        Task<AppSettingsCustomEntity> GetByIdAsync(int id);
+  Task<AppSettingsCustomEntity> GetByIdAsync(int id);
 
-        Task SetDefaultAsync(int id);
+  Task SetDefaultAsync(int id);
 
-        Task SetDefaultAsync();
+  Task SetDefaultAsync();
 
-        Task UpdateAsync(AppSettingsCustomEntity entity);
-    }
+  Task UpdateAsync(AppSettingsCustomEntity entity);
 }
