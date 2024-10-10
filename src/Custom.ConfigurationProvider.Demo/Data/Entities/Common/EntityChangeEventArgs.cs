@@ -3,12 +3,7 @@ using System;
 
 namespace Custom.Configuration.Provider.Demo.Data.Entities.Common;
 
-public class EntityChangeEventArgs : EventArgs
+public class EntityChangeEventArgs(EntityEntry entry) : EventArgs
 {
-  public EntityEntry Entry { get; set; }
-
-  public EntityChangeEventArgs(EntityEntry entry)
-  {
-    Entry = entry;
-  }
+  public EntityEntry Entry { get; set; } = entry;
 }

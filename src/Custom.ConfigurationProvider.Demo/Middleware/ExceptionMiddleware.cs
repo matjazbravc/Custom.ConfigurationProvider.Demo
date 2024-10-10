@@ -11,20 +11,13 @@ namespace Custom.Configuration.Provider.Demo.Middleware;
 /// Handling Errors Globally with the Custom Middleware
 /// </summary>
 /// inspired by: https://code-maze.com/global-error-handling-aspnetcore/
-public class ExceptionMiddleware
+public class ExceptionMiddleware(RequestDelegate next)
 {
-  private readonly RequestDelegate _next;
-
-  public ExceptionMiddleware(RequestDelegate next)
-  {
-    _next = next;
-  }
-
   public async Task InvokeAsync(HttpContext httpContext)
   {
     try
     {
-      await _next(httpContext).ConfigureAwait(false);
+      await next(httpContext).ConfigureAwait(false);
     }
     catch (Exception ex)
     {

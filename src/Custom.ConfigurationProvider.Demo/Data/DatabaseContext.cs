@@ -1,9 +1,9 @@
-﻿using Custom.Configuration.Provider.Demo.Data.Entities.Common;
-using Custom.Configuration.Provider.Demo.Data.Entities;
+﻿using Custom.Configuration.Provider.Demo.Data.Entities;
+using Custom.Configuration.Provider.Demo.Data.Entities.Common;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Custom.Configuration.Provider.Demo.Data;
 
@@ -42,7 +42,7 @@ public class DatabaseContext : DbContext
   private void TrackEntityChanges()
   {
     foreach (var entry in ChangeTracker.Entries().Where(e =>
-        e.State == EntityState.Modified || e.State == EntityState.Added || e.State == EntityState.Deleted))
+      e.State == EntityState.Modified || e.State == EntityState.Added || e.State == EntityState.Deleted))
     {
       EntityChangeObserver.Instance.OnChanged(new EntityChangeEventArgs(entry));
     }

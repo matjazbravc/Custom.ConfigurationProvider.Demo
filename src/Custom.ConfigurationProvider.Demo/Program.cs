@@ -12,7 +12,7 @@ Log.Logger = new LoggerConfiguration()
   .WriteTo.Console()
   .CreateBootstrapLogger();
 
-using IHost app = Host
+IHost app = Host
   .CreateDefaultBuilder(args)
     .ConfigureWebHostDefaults(webHostBuilder => webHostBuilder
       .ConfigureAppConfiguration((hostingContext, config) =>
@@ -22,9 +22,11 @@ using IHost app = Host
         config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
         config.AddJsonFile($"appsettings.{hostingContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
         config.AddEnvironmentVariables();
+
         // Rebuild configuration
         IConfigurationRoot configuration = config.Build();
         IConfigurationSection sqlServerOptions = configuration.GetSection(nameof(SqlServerOptions));
+
         config.Add(new AppSettingsCustomEntityConfigurationSource(configuration)
         {
           OptionsAction = options => options.UseSqlite(sqlServerOptions[nameof(SqlServerOptions.SqlServerConnection)]),
@@ -33,9 +35,9 @@ using IHost app = Host
         });
       })
       .UseStartup<Startup>())
-      .UseSerilog((hostingContext, loggerConfig) => loggerConfig
-        .ReadFrom.Configuration(hostingContext.Configuration)
-        .Enrich.FromLogContext(), writeToProviders: true)
+        .UseSerilog((hostingContext, loggerConfig) => loggerConfig
+          .ReadFrom.Configuration(hostingContext.Configuration)
+          .Enrich.FromLogContext(), writeToProviders: true)
   .Build();
 
 await app.RunAsync();

@@ -12,9 +12,9 @@ public class EntityChangeObserver
     ThreadPool.QueueUserWorkItem((_) => Changed?.Invoke(this, e));
   }
 
-  private static readonly Lazy<EntityChangeObserver> lazy = new Lazy<EntityChangeObserver>(() => new EntityChangeObserver());
+  private static readonly Lazy<EntityChangeObserver> _lazy = new(() => new EntityChangeObserver());
 
   private EntityChangeObserver() { }
 
-  public static EntityChangeObserver Instance => lazy.Value;
+  public static EntityChangeObserver Instance => _lazy.Value;
 }

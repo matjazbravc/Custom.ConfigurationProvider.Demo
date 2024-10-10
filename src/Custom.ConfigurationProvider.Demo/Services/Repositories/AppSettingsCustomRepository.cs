@@ -14,7 +14,7 @@ public class AppSettingsCustomRepository(DatabaseContext dbContext) : IAppSettin
 
   public async Task<AppSettingsCustomEntity> AddAsync(AppSettingsCustomEntity entity)
   {
-    var isDefault = entity.Default;
+    bool isDefault = entity.Default;
     if (isDefault)
     {
       await ClearDefaultAsync(entity.Id);
@@ -42,7 +42,7 @@ public class AppSettingsCustomRepository(DatabaseContext dbContext) : IAppSettin
   /// <returns></returns>
   public async Task ClearDefaultAsync(int excludeId)
   {
-    var defSettings = await _dbContext.AppSettingsCustomItems.FirstOrDefaultAsync(x => x.Id != excludeId && x.Default);
+    AppSettingsCustomEntity defSettings = await _dbContext.AppSettingsCustomItems.FirstOrDefaultAsync(x => x.Id != excludeId && x.Default);
     if (defSettings != null)
     {
       defSettings.Default = false;
@@ -70,7 +70,7 @@ public class AppSettingsCustomRepository(DatabaseContext dbContext) : IAppSettin
   public async Task SetDefaultAsync(int id)
   {
     await _dbContext.AppSettingsCustomItems.ForEachAsync(x => x.Default = false);
-    var defSettings = await _dbContext.AppSettingsCustomItems.FirstOrDefaultAsync(c => c.Id == id);
+    AppSettingsCustomEntity defSettings = await _dbContext.AppSettingsCustomItems.FirstOrDefaultAsync(c => c.Id == id);
     defSettings.Default = true;
     _dbContext.Entry(defSettings).State = EntityState.Modified;
     await _dbContext.SaveChangesAsync().ConfigureAwait(false);
@@ -82,10 +82,10 @@ public class AppSettingsCustomRepository(DatabaseContext dbContext) : IAppSettin
   /// <returns></returns>
   public async Task SetDefaultAsync()
   {
-    var defOption = await _dbContext.AppSettingsCustomItems.FirstOrDefaultAsync(c => c.Default);
+    AppSettingsCustomEntity defOption = await _dbContext.AppSettingsCustomItems.FirstOrDefaultAsync(c => c.Default);
     if (defOption == null)
     {
-      var defSettings = await _dbContext.AppSettingsCustomItems.FirstOrDefaultAsync();
+      AppSettingsCustomEntity defSettings = await _dbContext.AppSettingsCustomItems.FirstOrDefaultAsync();
       defSettings.Default = true;
       _dbContext.Entry(defSettings).State = EntityState.Modified;
       await _dbContext.SaveChangesAsync().ConfigureAwait(false);
@@ -97,7 +97,7 @@ public class AppSettingsCustomRepository(DatabaseContext dbContext) : IAppSettin
     _dbContext.Entry(entity).State = EntityState.Modified;
     await _dbContext.SaveChangesAsync().ConfigureAwait(false);
 
-    var isDefault = entity.Default;
+    bool isDefault = entity.Default;
     if (isDefault)
     {
       await ClearDefaultAsync(entity.Id).ConfigureAwait(false);

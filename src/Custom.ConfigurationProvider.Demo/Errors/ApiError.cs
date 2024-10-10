@@ -5,19 +5,13 @@ namespace Custom.Configuration.Provider.Demo.Errors;
 
 [Serializable]
 [JsonObject(IsReference = false)]
-public class ApiError
+public class ApiError(int statusCode, string message)
 {
-  public ApiError(int statusCode, string message)
-  {
-    StatusCode = statusCode;
-    Message = message;
-  }
-
   [JsonProperty("statusCode")]
-  public int StatusCode { get; set; }
+  public int StatusCode { get; set; } = statusCode;
 
   [JsonProperty("error")]
-  public string Message { get; set; }
+  public string Message { get; set; } = message;
 
   public override string ToString()
   {
